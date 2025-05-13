@@ -5,7 +5,7 @@ A lightweight collection of utility tools for Raspberry Pi and Linux systems. Th
 ---
 
 ## 🔍 Vitals
-A terminal-based TUI system monitoring utility for Raspberry Pi and Linux systems. Designed for real-time vitals monitoring with a clean, colorized dashboard view.
+A terminal-based TUI system monitoring utility for Linux based systems. Designed for real-time vitals monitoring with a clean, colorized dashboard view.
 
 ### ✨ Features
 - CPU, Memory, Disk, Network, Load, Uptime
@@ -15,24 +15,23 @@ A terminal-based TUI system monitoring utility for Raspberry Pi and Linux system
 
 ### 🚀 Run
 ```bash
-chmod +x vitals-tui.sh
-./vitals-tui.sh
+chmod +x vitals
+./vitals
 ```
 
 ### 📂 Folder Structure
 ```
 /tools
-└── vitals/
-    ├── vitals-tui.sh
-    └── README.md
+└── vitals
+└── README.md
 ```
 
 ### 📝 Usage
 Clone the repo and run the vitals tool directly:
 ```bash
-git clone https://github.com/yourusername/tools.git
-cd tools/vitals
-./vitals-tui.sh
+git clone https://github.com/veeringman/tools.git
+cd tools
+./vitals.sh
 ```
 
 ---
