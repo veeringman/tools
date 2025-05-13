@@ -13,6 +13,19 @@ A terminal-based TUI system monitoring utility for Linux based systems. Designed
 - Flicker-free terminal refresh
 - ASCII/Emoji icon view (configurable)
 
+### 🔧 Prerequisites
+Vitals is a pure Bash script but relies on a few common utilities available on most Linux systems. To ensure full functionality, make sure these are installed:
+
+```bash
+sudo apt update
+sudo apt install -y procps coreutils bc lsb-release util-linux
+```
+
+Optional (for IO monitoring):
+```bash
+sudo apt install -y iotop
+```
+
 ### 🚀 Run
 ```bash
 chmod +x vitals
