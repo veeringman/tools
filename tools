@@ -1,0 +1,133 @@
+#!/bin/bash
+
+# Setup colors and effects
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BLUE=$(tput setaf 4)
+CYAN=$(tput setaf 6)
+RESET=$(tput sgr0)
+BOLD=$(tput bold)
+REV=$(tput rev)
+CLEAR=$(tput clear)
+HIDE_CURSOR=$(tput civis)
+SHOW_CURSOR=$(tput cnorm)
+
+ICON_CPU="🧠"
+ICON_TEMP="🌡️"
+ICON_MEM="🗄️"
+ICON_DISK="💽"
+ICON_NET="🌐"
+ICON_UP="⏱️"
+ICON_LOAD="📊"
+ICON_PROC="🌀"
+
+trap "tput cnorm; clear; exit" INT TERM
+
+echo -ne "$HIDE_CURSOR"
+echo -ne "$CLEAR"
+
+# Print static layout
+draw_layout() {
+  echo -e "${BOLD}${CYAN}==================== PiOS 5 VITALS MONITOR ====================${RESET}"
+  
+  tput cup 2 2;  echo -e "${BLUE}${ICON_CPU} CPU Info:${RESET}"
+  tput cup 3 4;  echo -e "Model:"
+  tput cup 4 4;  echo -e "Arch :"
+  tput cup 5 4;  echo -e "Cores:"
+  
+  tput cup 7 2;  echo -e "${BLUE}${ICON_TEMP} Temperature:${RESET}"
+
+  tput cup 9 2;  echo -e "${BLUE}${ICON_MEM} Memory Usage:${RESET}"
+  tput cup 10 4; echo -e "Total:"
+  tput cup 11 4; echo -e "Used :"
+  tput cup 12 4; echo -e "Free :"
+
+  tput cup 14 2; echo -e "${BLUE}${ICON_DISK} Disk Usage:${RESET}"
+  tput cup 15 4; echo -e "Used :"
+  tput cup 16 4; echo -e "Avail:"
+  tput cup 17 4; echo -e "Use% :"
+
+  tput cup 19 2; echo -e "${BLUE}${ICON_NET} Network:${RESET}"
+  tput cup 20 4; echo -e "IP Addr:"
+  tput cup 21 4; echo -e "Gateway:"
+
+  tput cup 23 2; echo -e "${BLUE}${ICON_UP} Uptime:${RESET}"
+  tput cup 24 4; echo -e "Since:"
+
+  tput cup 26 2; echo -e "${BLUE}${ICON_LOAD} Load Avg:${RESET}"
+  tput cup 27 4; echo -e "1m 5m 15m:"
+
+  tput cup 29 2; echo -e "${BLUE}${ICON_PROC} Top Processes:${RESET}"
+  tput cup 30 4; echo -e "${BOLD}CPU%   MEM%   CMD${RESET}"
+
+  tput cup 37 2; echo -e "${REV}${YELLOW} Auto-refreshing every 5s... Press Ctrl+C to exit ${RESET}"
+}
+
+# Draw once
+draw_layout
+
+# Main loop
+while true; do
+  # CPU Info
+  cpu_model=$(lscpu | grep "Model name" | cut -d ':' -f2 | xargs)
+  cpu_arch=$(lscpu | grep "Architecture" | awk '{print $2}')
+  cpu_cores=$(nproc)
+  tput cup 3 20;  printf "%-40s" "$cpu_model"
+  tput cup 4 20;  printf "%-40s" "$cpu_arch"
+  tput cup 5 20;  printf "%-40s" "$cpu_cores"
+
+  # Temp
+  if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
+    temp_raw=$(cat /sys/class/thermal/thermal_zone0/temp)
+    temp_c=$(echo "scale=1; $temp_raw / 1000" | bc)
+    color=$GREEN; (( $(echo "$temp_c > 60" | bc -l) )) && color=$YELLOW
+    (( $(echo "$temp_c > 75" | bc -l) )) && color=$RED
+    tput cup 7 20; echo -ne "${color}${temp_c}°C${RESET}         "
+  fi
+
+  # Memory
+  read _ total used free _ <<<$(free -h | awk '/^Mem:/ {print $2, $3, $4}')
+  tput cup 10 20; printf "%-10s" "$total"
+  tput cup 11 20; printf "%-10s" "$used"
+  tput cup 12 20; printf "%-10s" "$free"
+
+  # Disk
+  read _ used avail usep _ <<<$(df -h / | awk 'NR==2 {print $1, $3, $4, $5, $6}')
+  tput cup 15 20; printf "%-10s" "$used"
+  tput cup 16 20; printf "%-10s" "$avail"
+  tput cup 17 20; printf "%-10s" "$usep"
+
+  # Network
+  ip_addr=$(hostname -I | awk '{print $1}')
+  gateway=$(ip route | awk '/default/ {print $3}')
+  tput cup 20 20; printf "%-20s" "$ip_addr"
+  tput cup 21 20; printf "%-20s" "$gateway"
+
+  # Uptime
+  uptime_text=$(uptime -p)
+  tput cup 24 20; printf "%-40s" "$uptime_text"
+
+  # Load Avg
+  loadavg=$(cut -d ' ' -f1-3 /proc/loadavg)
+  tput cup 27 20; printf "%-20s" "$loadavg"
+
+  # Top processes (CPU+MEM)
+  row=31  # Reset starting row for each update
+
+  # Clear previous rows (avoid stale entries)
+  for i in {0..4}; do
+    tput cup $((row + i)) 4
+    printf "%-60s" " "
+  done
+
+  # Now insert fresh top 5 processes
+  top -b -n1 | awk 'NR>7 {printf "%-6s %-6s %s\n", $9, $10, $12}' | head -n 5 | while read -r line; do
+    tput cup $row 4
+    printf "%-60s" "$line"
+    row=$((row + 1))
+  done
+
+  sleep 5
+done
+
